@@ -1,15 +1,31 @@
 const nodemailer = require("nodemailer");
 const validator = require("validator");
 
-// Email configuration
+// Enhanced logging function
+const log = (message, data = null) => {
+  console.log(
+    `[${new Date().toISOString()}] ${message}`,
+    data ? JSON.stringify(data, null, 2) : ""
+  );
+};
+
+// Email configuration with better error handling
 const createTransporter = () => {
-  return nodemailer.createTransporter({
+  const config = {
     service: "gmail",
     auth: {
       user: process.env.MAIL_USERNAME,
       pass: process.env.MAIL_PASSWORD,
     },
+  };
+
+  log("Creating transporter with config:", {
+    service: config.service,
+    user: config.auth.user ? "SET" : "NOT SET",
+    pass: config.auth.pass ? "SET" : "NOT SET",
   });
+
+  return nodemailer.createTransporter(config);
 };
 
 // Validation function
@@ -64,8 +80,15 @@ Please follow up with the customer as needed.
 
 // Main handler function
 exports.handler = async (event, context) => {
+  log("Function invoked", {
+    httpMethod: event.httpMethod,
+    headers: event.headers,
+    hasBody: !!event.body,
+  });
+
   // Handle CORS preflight requests
   if (event.httpMethod === "OPTIONS") {
+    log("Handling OPTIONS request");
     return {
       statusCode: 200,
       headers: {
@@ -79,6 +102,7 @@ exports.handler = async (event, context) => {
 
   // Only allow POST requests
   if (event.httpMethod !== "POST") {
+    log("Method not allowed:", event.httpMethod);
     return {
       statusCode: 405,
       headers: {
@@ -93,13 +117,21 @@ exports.handler = async (event, context) => {
   }
 
   try {
+    // Check environment variables
+    if (!process.env.MAIL_USERNAME || !process.env.MAIL_PASSWORD) {
+      log("Missing environment variables");
+      throw new Error("Missing required environment variables");
+    }
+
     // Parse form data
     let formData;
 
     // Handle both JSON and form-encoded data
     if (event.headers["content-type"]?.includes("application/json")) {
+      log("Parsing JSON data");
       formData = JSON.parse(event.body);
     } else {
+      log("Parsing form data");
       // Parse form-encoded data
       const params = new URLSearchParams(event.body);
       formData = {
@@ -110,9 +142,12 @@ exports.handler = async (event, context) => {
       };
     }
 
+    log("Form data received:", formData);
+
     // Validate form data
     const validationErrors = validateFormData(formData);
     if (validationErrors.length > 0) {
+      log("Validation errors:", validationErrors);
       return {
         statusCode: 400,
         headers: {
@@ -133,13 +168,20 @@ exports.handler = async (event, context) => {
     // Email options
     const mailOptions = {
       from: process.env.MAIL_USERNAME,
-      to: process.env.EMAIL_TO || "abcd@gmail.com",
+      to: process.env.EMAIL_TO || "default@example.com",
       subject: buildEmailSubject(),
       text: buildEmailBody(formData),
     };
 
+    log("Sending email with options:", {
+      from: mailOptions.from,
+      to: mailOptions.to,
+      subject: mailOptions.subject,
+    });
+
     // Send email
-    await transporter.sendMail(mailOptions);
+    const result = await transporter.sendMail(mailOptions);
+    log("Email sent successfully:", { messageId: result.messageId });
 
     // Success response
     return {
@@ -154,7 +196,10 @@ exports.handler = async (event, context) => {
       }),
     };
   } catch (error) {
-    console.error("Error processing form:", error);
+    log("Error processing form:", {
+      message: error.message,
+      stack: error.stack,
+    });
 
     return {
       statusCode: 500,
@@ -165,6 +210,8 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         status: "error",
         message: "Internal server error. Please try again.",
+        error:
+          process.env.NODE_ENV === "development" ? error.message : undefined,
       }),
     };
   }
