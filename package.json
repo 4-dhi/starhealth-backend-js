@@ -1,0 +1,26 @@
+{
+  "name": "starhealth-backend",
+  "version": "1.0.0",
+  "description": "StarHealth Form Handler Backend for Netlify",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'",
+    "test": "echo 'No tests specified'"
+  },
+  "dependencies": {
+    "nodemailer": "^6.9.7",
+    "validator": "^13.11.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.10.1"
+  },
+  "keywords": [
+    "netlify",
+    "serverless",
+    "form-handler",
+    "email"
+  ],
+  "author": "Your Name",
+  "license": "MIT"
+}
