@@ -1,12 +1,21 @@
 [build]
   functions = "netlify/functions"
-  publish = "public"
+  # Remove or comment out the publish line since we don't have static files
+  # publish = "public"
 
 [functions]
   node_bundler = "esbuild"
 
 [[headers]]
   for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type, Authorization"
+
+# Add headers for function endpoints
+[[headers]]
+  for = "/.netlify/functions/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, PUT, DELETE, OPTIONS"
