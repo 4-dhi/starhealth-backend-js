@@ -25,7 +25,7 @@ const createTransporter = () => {
     pass: config.auth.pass ? "SET" : "NOT SET",
   });
 
-  return nodemailer.createTransporter(config);
+  return nodemailer.createTransport(config);
 };
 
 // Parse multipart form data
